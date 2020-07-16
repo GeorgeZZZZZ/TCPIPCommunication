@@ -159,6 +159,11 @@ MonoBehaviour:
   port: 45545
   CurrentState: 0
   ServerThreadQuitDelayTime: 1
+  CheckAliveAllowTotalFailTime: 5
+  CheckAliveFailCache: 0
+  CheckAliveDelayTime: 1
+  aavb: 
+  JustSeeBehaver: 0
 --- !u!1 &1063753158
 GameObject:
   m_ObjectHideFlags: 0
@@ -235,7 +240,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1343957261
 Transform:
   m_ObjectHideFlags: 0
@@ -262,6 +267,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b81f65336118ef49b1c1d70dc2ad20c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  CheckAliveDelayTime: 1
+  timeReached: 0
+  startAgain: 0
 --- !u!1 &2104165661
 GameObject:
   m_ObjectHideFlags: 0
@@ -307,7 +315,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enable: 0
   CurrentState: 0
-  messageCycleSendingTime: 1
+  messageCycleSendingTime: 0.005
   IpAddressToConnect: localhost
   port: 45545
   ClientThreadQuitDelayTime: 1
+  CheckAliveAllowTotalFailTime: 5
+  CheckAliveFailCache: 0
+  CheckAliveDelayTime: 1

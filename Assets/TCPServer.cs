@@ -7,7 +7,7 @@ using System.Threading;
 using System.IO;
 using System;
 using System.Threading.Tasks;
-using System.Net.NetworkInformation;
+
 
 namespace Georgescript
 {
@@ -23,9 +23,12 @@ namespace Georgescript
         private TCPPackage pack = new TCPPackage();
         private Task TCPServerTask;
         private Thread currentThread;
+        public byte CheckAliveAllowTotalFailTime = 3;
+        private byte CheckAliveFailCache;
+        public float CheckAliveDelayTime = 1f;
 
         // Start is called before the first frame update
-        private void Start()
+        public virtual void Start()
         {
             tcpMainState = 0;
         }
@@ -38,7 +41,7 @@ namespace Georgescript
             }
         }
 
-        private void Update()
+        public virtual void Update()
         {
             CurrentState = tcpMainState;
             switch (tcpMainState)
@@ -77,7 +80,6 @@ namespace Georgescript
             }
 
         }
-
         private void MyTCPServer()
         {
             try
@@ -86,17 +88,34 @@ namespace Georgescript
                 TcpListener Mylistener = new TcpListener(IPAddress.Any, port);
                 Mylistener.Start();
                 bool clientAlive = false;
+                System.Timers.Timer aliveTimer = new System.Timers.Timer();
+                aliveTimer.Interval = CheckAliveDelayTime *1000;    //timer is using ms
+                aliveTimer.Elapsed += AliveTimer;
                 do
                 {
                     using (TcpClient c = Mylistener.AcceptTcpClient())
                     using (NetworkStream netStream = c.GetStream())
                     {
+                        CheckAliveFailCache = 0;
+                        clientAlive = true;
                         // start looping waitting for new message
                         do
                         {
                             // check if connection is alive
-                            clientAlive = TCPClientIsAlive.IsConnected(c);
-                            if (netStream.DataAvailable)
+                            //clientAlive = TCPClientIsAlive.IsConnected(c);
+
+                            if (!aliveTimer.Enabled) aliveTimer.Start();
+                            if (AliveTimerReached)
+                            {
+                                AliveTimerReached = false;
+                                // check alive, if not
+                                if (!TCPClientIsAlive.IsConnected(c)) CheckAliveFailCache++;
+                                else CheckAliveFailCache = 0;
+                            }
+
+                            if (CheckAliveFailCache >= CheckAliveAllowTotalFailTime) clientAlive = false;
+
+                            if (clientAlive && enable && netStream.DataAvailable)
                             {
                                 string msgIn = new BinaryReader(netStream).ReadString();
                                 BinaryWriter write = new BinaryWriter(netStream);
@@ -115,14 +134,21 @@ namespace Georgescript
                                 write.Flush();
                             }
                         } while (clientAlive && enable);
+                        aliveTimer.Stop();
                     }
                 } while (enable);
+                aliveTimer.Dispose();
                 Mylistener.Stop();
             }
             catch (Exception e)
             {
                 if (e.Message.Length > 2) IfError(e.Message);
             }
+        }
+        private bool AliveTimerReached;
+        private void AliveTimer(object sender, EventArgs e)
+        {
+            AliveTimerReached = true;
         }
 
         public virtual void ReceivedMessage(List<float> _num, List<string> _str)

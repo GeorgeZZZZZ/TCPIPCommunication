@@ -26,15 +26,19 @@ namespace Georgescript
         private Thread currentThread;
         public float ClientThreadQuitDelayTime = 1f; // 1s delay to check if thread is close or not
         private float ClientThreadQuitDelayTimeCache;
+        public byte CheckAliveAllowTotalFailTime = 3;
+        private byte CheckAliveFailCache; 
+        public float CheckAliveDelayTime = 1f;
+        private float CheckAliveDelayTimeCache;
 
         // Start is called before the first frame update
-        private void Start()
+        public virtual void Start()
         {
             clientState = 0;
         }
 
         // Update is called once per frame
-        private void FixedUpdate()
+        public virtual void Update()
         {
             CurrentState = clientState;
             switch (clientState)
@@ -43,6 +47,8 @@ namespace Georgescript
                     if (enable)
                     {
                         TCPClientTask = Task.Run(ConnectToTCPServer);
+                        CheckAliveFailCache = 0;
+                        CheckAliveDelayTimeCache = CheckAliveDelayTime;
                         clientState = 10;
                     }
                     break;
@@ -58,8 +64,20 @@ namespace Georgescript
                     if (!enable && Aclient == null) clientState = 0;
                     break;
                 case 20:
-                    if (!TCPClientIsAlive.IsConnected(Aclient) || !enable)
-                    {// check alive, if not
+                    if (CheckAliveDelayTimeCache <= 0)
+                    {
+                        CheckAliveDelayTimeCache = CheckAliveDelayTime;
+                        // check alive, if not
+                        if (!TCPClientIsAlive.IsConnected(Aclient)) CheckAliveFailCache++;
+                        else
+                        {
+                            CheckAliveFailCache = 0;
+                        }
+                    }
+                    else CheckAliveDelayTimeCache -= Time.deltaTime;
+
+                    if(CheckAliveFailCache >= CheckAliveAllowTotalFailTime || !enable)
+                    {
                         DisconnectFromTCPServer();
                         ClientThreadQuitDelayTimeCache = ClientThreadQuitDelayTime;
                         clientState = 30;
